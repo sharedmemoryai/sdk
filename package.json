@@ -1,0 +1,17 @@
+{
+  "name": "@sharedmemory/sdk",
+  "version": "0.1.0",
+  "description": "SDK for SharedMemory — persistent memory layer for AI agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["ai", "memory", "agents", "knowledge-graph", "rag", "mcp"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
