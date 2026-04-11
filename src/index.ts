@@ -121,7 +121,7 @@ export class SharedMemory {
   /** Get a specific entity from the knowledge graph. */
   async getEntity(name: string, opts?: { volumeId?: string }): Promise<Entity> {
     return this.request("POST", "/agent/entity", {
-      name,
+      entity_name: name,
       volume_id: opts?.volumeId || this.volumeId,
     });
   }
