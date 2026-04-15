@@ -1,11 +1,15 @@
 /**
- * @sharedmemory/sdk — The persistent memory layer for AI agents.
+ * @sharedmemory/sdk — Persistent memory infrastructure for AI agents.
  *
  * Usage:
  *   import { SharedMemory } from '@sharedmemory/sdk'
- *   const memory = new SharedMemory({ apiKey: 'sm_live_...' })
+ *   const memory = new SharedMemory({ apiKey: 'sm_proj_rw_...' })
  *   await memory.add("The user prefers dark mode")
  *   const results = await memory.search("user preferences")
+ *
+ * Agent profiles:
+ *   const agents = await memory.agents.list({ orgId: '...' })
+ *   const agent = await memory.agents.create({ orgId, projectId, name, systemPrompt })
  */
 
 export interface SharedMemoryConfig {
@@ -104,6 +108,46 @@ export interface ActivityEvent {
   title: string;
   detail: Record<string, any>;
   created_at: string;
+}
+
+export interface Agent {
+  agent_id: string;
+  name: string;
+  description: string | null;
+  system_prompt: string | null;
+  project_id: string;
+  project_name?: string;
+  is_active: boolean;
+  key_prefix: string;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentCreateResult extends Agent {
+  api_key: string;
+  api_key_prefix: string;
+}
+
+export interface Organization {
+  org_id: string;
+  name: string;
+  slug: string;
+  plan: string;
+  usage_limit_memories: number;
+  usage_limit_queries: number;
+  usage_limit_projects: number;
+  usage_limit_seats: number;
+  created_at: string;
+}
+
+export interface OrgMember {
+  id: number;
+  user_id: number;
+  email: string;
+  name: string;
+  role: string;
+  joined_at: string;
 }
 
 export class SharedMemory {
@@ -357,6 +401,95 @@ export class SharedMemory {
 
     return {
       close: () => ws.close(),
+    };
+  }
+
+  // ─── Agents (v2) ───
+
+  /** Agent profile management. Requires user-session auth or admin-scoped API key. */
+  get agents() {
+    const req = this.request.bind(this);
+    return {
+      /** Create an agent with a system prompt. Returns the agent + one-time API key. */
+      async create(opts: {
+        orgId: string;
+        projectId: string;
+        name: string;
+        description?: string;
+        systemPrompt?: string;
+      }): Promise<AgentCreateResult> {
+        return req("POST", "/agents", {
+          org_id: opts.orgId,
+          project_id: opts.projectId,
+          name: opts.name,
+          description: opts.description,
+          system_prompt: opts.systemPrompt,
+        });
+      },
+
+      /** List agents in an org, optionally filtered by project. */
+      async list(opts: { orgId: string; projectId?: string }): Promise<Agent[]> {
+        const qs = opts.projectId ? `&project_id=${opts.projectId}` : "";
+        return req("GET", `/agents?org_id=${opts.orgId}${qs}`);
+      },
+
+      /** Get a single agent by ID. */
+      async get(agentId: string): Promise<Agent> {
+        return req("GET", `/agents/${agentId}`);
+      },
+
+      /** Update an agent's name, description, or system prompt. */
+      async update(agentId: string, updates: {
+        name?: string;
+        description?: string;
+        systemPrompt?: string;
+        isActive?: boolean;
+      }): Promise<Agent> {
+        return req("PATCH", `/agents/${agentId}`, {
+          name: updates.name,
+          description: updates.description,
+          system_prompt: updates.systemPrompt,
+          is_active: updates.isActive,
+        });
+      },
+
+      /** Deactivate an agent and revoke its API key. */
+      async delete(agentId: string): Promise<{ status: string; agent_id: string }> {
+        return req("DELETE", `/agents/${agentId}`);
+      },
+
+      /** Rotate an agent's API key. Old key is revoked immediately. */
+      async rotateKey(agentId: string): Promise<{ agent_id: string; api_key: string; api_key_prefix: string }> {
+        return req("POST", `/agents/${agentId}/rotate-key`);
+      },
+    };
+  }
+
+  // ─── Organizations (v2) ───
+
+  /** Organization management. Requires user-session auth. */
+  get orgs() {
+    const req = this.request.bind(this);
+    return {
+      /** List organizations the current user belongs to. */
+      async list(): Promise<Organization[]> {
+        return req("GET", "/orgs");
+      },
+
+      /** Get a single organization by ID. */
+      async get(orgId: string): Promise<Organization> {
+        return req("GET", `/orgs/${orgId}`);
+      },
+
+      /** List members of an organization. */
+      async members(orgId: string): Promise<OrgMember[]> {
+        return req("GET", `/orgs/${orgId}/members`);
+      },
+
+      /** Apply a promo code to an organization. */
+      async applyPromo(orgId: string, code: string): Promise<any> {
+        return req("POST", `/orgs/${orgId}/promo`, { code });
+      },
     };
   }
 }
