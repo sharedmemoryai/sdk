@@ -4,8 +4,8 @@
  * Usage:
  *   import { SharedMemory } from '@sharedmemory/sdk'
  *   const memory = new SharedMemory({ apiKey: 'sm_live_...' })
- *   await memory.remember("The user prefers dark mode")
- *   const results = await memory.recall("user preferences")
+ *   await memory.add("The user prefers dark mode")
+ *   const results = await memory.search("user preferences")
  */
 
 export interface SharedMemoryConfig {
@@ -14,6 +14,10 @@ export interface SharedMemoryConfig {
   volumeId?: string;
   agentName?: string;
   timeout?: number;
+  userId?: string;
+  agentId?: string;
+  appId?: string;
+  sessionId?: string;
 }
 
 export interface MemoryResult {
@@ -21,12 +25,27 @@ export interface MemoryResult {
   reason: string;
   confidence: number;
   memory_id: string;
+  memory_class?: string;
 }
 
 export interface RecallResult {
   answer: string;
   sources: Array<{ id: string; content: string; score: number }>;
   graph_facts: Array<{ source: string; type: string; target: string }>;
+  reranked?: boolean;
+  context?: ContextBlock;
+}
+
+export interface SearchResult {
+  id: string;
+  content: string;
+  score: number;
+  memory_type?: string;
+  memory_class?: string;
+  agent?: string;
+  created_at?: string;
+  document_id?: string;
+  filename?: string;
 }
 
 export interface Entity {
@@ -35,6 +54,44 @@ export interface Entity {
   summary: string;
   facts: string[];
   relationships: Array<{ entity: string; type: string; description?: string }>;
+}
+
+export interface ContextBlock {
+  blocks: string[];
+  token_estimate: number;
+  template_used?: string;
+}
+
+export interface MemoryFeedback {
+  feedback: "POSITIVE" | "NEGATIVE" | "VERY_NEGATIVE";
+  feedback_reason?: string;
+}
+
+export interface MemoryHistory {
+  id: number;
+  memory_id: string;
+  event: string;
+  old_content?: string;
+  new_content?: string;
+  actor?: string;
+  detail?: Record<string, any>;
+  created_at: string;
+}
+
+export interface EntityScope {
+  userId?: string;
+  agentId?: string;
+  appId?: string;
+  sessionId?: string;
+}
+
+export interface MetadataFilter {
+  AND?: MetadataFilter[];
+  OR?: MetadataFilter[];
+  NOT?: MetadataFilter;
+  field?: string;
+  op?: string;
+  value?: any;
 }
 
 export interface ActivityEvent {
@@ -55,6 +112,10 @@ export class SharedMemory {
   private volumeId: string;
   private agentName: string;
   private timeout: number;
+  private userId?: string;
+  private agentId?: string;
+  private appId?: string;
+  private sessionId?: string;
 
   constructor(config: SharedMemoryConfig) {
     if (!config.apiKey) throw new Error("apiKey is required");
@@ -63,6 +124,10 @@ export class SharedMemory {
     this.volumeId = config.volumeId || "default";
     this.agentName = config.agentName || "sdk-agent";
     this.timeout = config.timeout || 30000;
+    this.userId = config.userId;
+    this.agentId = config.agentId;
+    this.appId = config.appId;
+    this.sessionId = config.sessionId;
   }
 
   private async request(method: string, path: string, body?: any): Promise<any> {
@@ -91,32 +156,131 @@ export class SharedMemory {
     }
   }
 
-  /** Store a memory in the shared knowledge base. */
-  async remember(content: string, opts?: {
+  private entityScope(override?: EntityScope): Record<string, string | undefined> {
+    return {
+      user_id: override?.userId || this.userId,
+      agent_id: override?.agentId || this.agentId,
+      app_id: override?.appId || this.appId,
+      session_id: override?.sessionId || this.sessionId,
+    };
+  }
+
+  // ─── Core Memory Operations (Mem0-compatible) ───
+
+  /** Add a memory. Alias: remember() */
+  async add(content: string, opts?: {
     memoryType?: string;
     source?: string;
     volumeId?: string;
-  }): Promise<MemoryResult> {
+    metadata?: Record<string, any>;
+  } & EntityScope): Promise<MemoryResult> {
     return this.request("POST", "/agent/memory/write", {
       content,
       volume_id: opts?.volumeId || this.volumeId,
       agent: this.agentName,
       memory_type: opts?.memoryType || "factual",
       source: opts?.source || "sdk",
+      metadata: opts?.metadata,
+      ...this.entityScope(opts),
     });
   }
 
-  /** Recall memories relevant to a query. Returns an AI-synthesized answer + sources. */
-  async recall(query: string, opts?: {
+  /** Alias for add() */
+  async remember(content: string, opts?: Parameters<SharedMemory["add"]>[1]): Promise<MemoryResult> {
+    return this.add(content, opts);
+  }
+
+  /** Search memories by semantic similarity. */
+  async search(query: string, opts?: {
     volumeId?: string;
-    autoLearn?: boolean;
-  }): Promise<RecallResult> {
+    limit?: number;
+    filters?: MetadataFilter;
+    rerank?: boolean;
+    rerankMethod?: "llm" | "heuristic";
+    includeContext?: boolean;
+    templateId?: string;
+  } & EntityScope): Promise<RecallResult> {
     return this.request("POST", "/agent/memory/query", {
       query,
       volume_id: opts?.volumeId || this.volumeId,
-      auto_learn: opts?.autoLearn || false,
+      limit: opts?.limit || 10,
+      filters: opts?.filters,
+      rerank: opts?.rerank,
+      rerank_method: opts?.rerankMethod,
+      include_context: opts?.includeContext,
+      template_id: opts?.templateId,
+      ...this.entityScope(opts),
     });
   }
+
+  /** Alias for search() */
+  async recall(query: string, opts?: Parameters<SharedMemory["search"]>[1]): Promise<RecallResult> {
+    return this.search(query, opts);
+  }
+
+  /** Get a single memory by ID. */
+  async get(memoryId: string, opts?: { volumeId?: string }): Promise<any> {
+    const vol = opts?.volumeId || this.volumeId;
+    return this.request("GET", `/agent/memory/${memoryId}?volume_id=${encodeURIComponent(vol)}`);
+  }
+
+  /** Update a memory's content. */
+  async update(memoryId: string, content: string, opts?: {
+    volumeId?: string;
+    metadata?: Record<string, any>;
+  }): Promise<{ status: string; memory_id: string }> {
+    return this.request("PATCH", `/agent/memory/${memoryId}`, {
+      volume_id: opts?.volumeId || this.volumeId,
+      content,
+      metadata: opts?.metadata,
+    });
+  }
+
+  /** Delete (soft-invalidate) a memory. */
+  async delete(memoryId: string, opts?: { volumeId?: string }): Promise<{ status: string; memory_id: string }> {
+    return this.request("DELETE", `/agent/memory/${memoryId}`, {
+      volume_id: opts?.volumeId || this.volumeId,
+    });
+  }
+
+  /** Write multiple memories in a single request. */
+  async addMany(memories: Array<{
+    content: string;
+    volumeId?: string;
+    memoryType?: string;
+    metadata?: Record<string, any>;
+  } & EntityScope>): Promise<{ total: number; results: MemoryResult[] }> {
+    return this.request("POST", "/agent/memory/batch", {
+      memories: memories.map((m) => ({
+        content: m.content,
+        volume_id: m.volumeId || this.volumeId,
+        memory_type: m.memoryType || "factual",
+        metadata: m.metadata,
+        ...this.entityScope(m),
+      })),
+    });
+  }
+
+  // ─── Feedback & History ───
+
+  /** Submit feedback on a memory (positive, negative, or very_negative). */
+  async feedback(memoryId: string, feedback: MemoryFeedback, opts?: {
+    volumeId?: string;
+  }): Promise<any> {
+    return this.request("POST", "/memory/feedback", {
+      memory_id: memoryId,
+      volume_id: opts?.volumeId || this.volumeId,
+      ...feedback,
+      ...this.entityScope(),
+    });
+  }
+
+  /** Get the history of changes for a memory. */
+  async history(memoryId: string): Promise<{ memory: any; history: MemoryHistory[]; feedback: any[] }> {
+    return this.request("GET", `/memory/feedback/history/${memoryId}`);
+  }
+
+  // ─── Knowledge Graph ───
 
   /** Get a specific entity from the knowledge graph. */
   async getEntity(name: string, opts?: { volumeId?: string }): Promise<Entity> {
@@ -148,10 +312,28 @@ export class SharedMemory {
     });
   }
 
+  // ─── Volumes ───
+
   /** List volumes this agent has access to. */
   async listVolumes(): Promise<any[]> {
     return this.request("GET", "/agent/volumes");
   }
+
+  // ─── Context Assembly ───
+
+  /** Assemble a context block for LLM prompting (Zep-style). */
+  async assembleContext(opts?: {
+    volumeId?: string;
+    templateId?: string;
+  } & EntityScope): Promise<ContextBlock> {
+    return this.request("POST", "/memory/context/assemble", {
+      volume_id: opts?.volumeId || this.volumeId,
+      template_id: opts?.templateId,
+      ...this.entityScope(opts),
+    });
+  }
+
+  // ─── Real-time ───
 
   /** Subscribe to real-time updates on a volume. */
   subscribe(opts: {
