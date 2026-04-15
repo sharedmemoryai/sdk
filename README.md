@@ -1,14 +1,16 @@
 # @sharedmemory/sdk
 
-The official TypeScript/JavaScript client for [SharedMemory](https://sharedmemory.ai) — the persistent memory layer for AI agents.
+TypeScript client for the [SharedMemory](https://sharedmemory.ai) API — persistent memory for AI agents.
 
-## Install
+## Installation
 
 ```bash
 npm install @sharedmemory/sdk
 ```
 
-## Quick Start
+Requires Node.js 18+.
+
+## Usage
 
 ```typescript
 import { SharedMemory } from '@sharedmemory/sdk';
@@ -18,62 +20,50 @@ const memory = new SharedMemory({
   volumeId: 'your-volume-id',
 });
 
-// Store a memory
+// Write
 const result = await memory.remember('John is the CTO of Acme Corp');
-console.log(result.status); // "approved"
 
-// Recall memories
+// Read
 const recall = await memory.recall('Who is John?');
-console.log(recall.sources);
 
-// Get entity details
+// Graph
 const entity = await memory.getEntity('John');
-console.log(entity.facts);
-
-// Search entities
-const entities = await memory.searchEntities('React');
-
-// Get full knowledge graph
+const results = await memory.searchEntities('React');
 const graph = await memory.getGraph();
 
-// List accessible volumes
-const volumes = await memory.listVolumes();
-
-// Real-time updates
+// Real-time
 const sub = memory.subscribe({
-  onMemory: (event) => console.log('New memory:', event),
-  onActivity: (event) => console.log('Activity:', event),
+  onMemory: (event) => console.log(event),
+  onActivity: (event) => console.log(event),
 });
-// sub.close() to disconnect
+sub.close();
 ```
 
 ## Configuration
 
-```typescript
-const memory = new SharedMemory({
-  apiKey: 'sm_live_...',       // Required
-  baseUrl: 'https://api.sharedmemory.ai', // Default
-  volumeId: 'default',         // Default volume for all calls
-  agentName: 'sdk-agent',      // Agent name for attribution
-  timeout: 30000,              // Request timeout in ms
-});
-```
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `apiKey` | `string` | — | Required. API key (`sm_live_...`) |
+| `baseUrl` | `string` | `https://api.sharedmemory.ai` | API endpoint |
+| `volumeId` | `string` | `default` | Default volume for all operations |
+| `agentName` | `string` | `sdk-agent` | Agent name for attribution |
+| `timeout` | `number` | `30000` | Request timeout (ms) |
 
-## API Reference
+## Methods
 
 | Method | Description |
 |--------|-------------|
 | `remember(content, opts?)` | Store a memory |
-| `recall(query, opts?)` | Search memories + graph facts |
-| `getEntity(name, opts?)` | Get entity details |
+| `recall(query, opts?)` | Search memories and graph facts |
+| `getEntity(name, opts?)` | Get entity details and relationships |
 | `searchEntities(query, opts?)` | Search entities by name |
-| `getGraph(opts?)` | Get full knowledge graph |
+| `getGraph(opts?)` | Retrieve the full knowledge graph |
 | `listVolumes()` | List accessible volumes |
-| `subscribe(opts)` | Real-time WebSocket updates |
+| `subscribe(opts)` | Real-time updates via WebSocket |
 
-## Docs
+## Documentation
 
-Full documentation: [docs.sharedmemory.ai/sdks/typescript-sdk](https://docs.sharedmemory.ai/sdks/typescript-sdk)
+https://docs.sharedmemory.ai/sdks/typescript-sdk
 
 ## License
 

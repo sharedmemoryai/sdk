@@ -4,13 +4,26 @@
   "description": "SDK for SharedMemory — persistent memory layer for AI agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": ["dist", "LICENSE", "README.md"],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["ai", "memory", "agents", "knowledge-graph", "rag", "mcp"],
+  "keywords": ["ai", "memory", "agents", "knowledge-graph", "rag", "mcp", "llm", "shared-memory"],
+  "author": "SharedMemory AI <akash@sharedmemory.ai> (https://sharedmemory.ai)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sharedmemoryai/sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sharedmemoryai/sdk/issues"
+  },
+  "homepage": "https://docs.sharedmemory.ai/sdks/typescript-sdk",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false,
   "devDependencies": {
     "typescript": "^5.4.0"
   }
