@@ -1,6 +1,6 @@
 {
   "name": "@sharedmemory/sdk",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "SDK for SharedMemory — persistent memory layer for AI agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,6 +22,9 @@
   "homepage": "https://docs.sharedmemory.ai/sdks/typescript-sdk",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "sideEffects": false,
   "devDependencies": {
