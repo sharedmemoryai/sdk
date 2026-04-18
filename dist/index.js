@@ -113,6 +113,24 @@ class SharedMemory {
             volume_id: opts?.volumeId || this.volumeId,
         });
     }
+    /** Batch delete up to 100 memories in a single request. */
+    async deleteMany(memoryIds, opts) {
+        return this.request("POST", "/agent/memory/delete/batch", {
+            volume_id: opts?.volumeId || this.volumeId,
+            memory_ids: memoryIds,
+        });
+    }
+    /** Batch update up to 100 memories in a single request. */
+    async updateMany(updates, opts) {
+        return this.request("POST", "/agent/memory/update/batch", {
+            volume_id: opts?.volumeId || this.volumeId,
+            updates: updates.map(u => ({
+                memory_id: u.memoryId,
+                content: u.content,
+                ...(u.metadata ? { metadata: u.metadata } : {}),
+            })),
+        });
+    }
     /** Write multiple memories in a single request. */
     async addMany(memories) {
         return this.request("POST", "/agent/memory/batch", {
@@ -196,6 +214,99 @@ class SharedMemory {
         return {
             close: () => ws.close(),
         };
+    }
+    // ─── Webhooks ───
+    /** Register a persistent HTTP webhook for volume events. */
+    async webhookSubscribe(opts) {
+        return this.request("POST", "/agent/memory/subscribe", {
+            volume_id: opts.volumeId || this.volumeId,
+            url: opts.url,
+            events: opts.events || ["memory.approved", "memory.flagged"],
+            secret: opts.secret,
+        });
+    }
+    /** Remove a persistent HTTP webhook subscription. */
+    async webhookUnsubscribe(opts) {
+        return this.request("DELETE", "/agent/memory/unsubscribe", {
+            volume_id: opts.volumeId || this.volumeId,
+            url: opts.url,
+        });
+    }
+    // ─── Sessions ───
+    /** Start a new session for scoped memory tracking. */
+    async startSession(sessionId, opts) {
+        return this.request("POST", "/memory/sessions/start", {
+            session_id: sessionId,
+            volume_id: opts?.volumeId || this.volumeId,
+            ...this.entityScope(opts),
+        });
+    }
+    /** End a session. If autoSummarize=true, compresses session memories into long-term storage. */
+    async endSession(sessionId, opts) {
+        return this.request("POST", "/memory/sessions/end", {
+            session_id: sessionId,
+            volume_id: opts?.volumeId || this.volumeId,
+            auto_summarize: opts?.autoSummarize ?? true,
+        });
+    }
+    /** Get session details by ID. */
+    async getSession(sessionId) {
+        return this.request("GET", `/memory/sessions/${sessionId}`);
+    }
+    /** List sessions for a volume. */
+    async listSessions(opts) {
+        const vol = opts?.volumeId || this.volumeId;
+        const params = new URLSearchParams({ volume_id: vol });
+        if (opts?.status)
+            params.set("status", opts.status);
+        if (opts?.limit)
+            params.set("limit", String(opts.limit));
+        return this.request("GET", `/memory/sessions?${params.toString()}`);
+    }
+    // ─── Export / Import ───
+    /** Export all memories for a volume. */
+    async exportMemories(opts) {
+        const vol = opts?.volumeId || this.volumeId;
+        const params = new URLSearchParams({ volume_id: vol });
+        if (opts?.format)
+            params.set("format", opts.format);
+        if (opts?.includeGraph !== undefined)
+            params.set("include_graph", String(opts.includeGraph));
+        return this.request("GET", `/memory/export?${params.toString()}`);
+    }
+    /** Bulk import memories into a volume. */
+    async importMemories(memories, opts) {
+        return this.request("POST", "/memory/import", {
+            volume_id: opts?.volumeId || this.volumeId,
+            memories: memories.map((m) => ({
+                content: m.content,
+                memory_type: m.memoryType || "factual",
+                metadata: m.metadata,
+            })),
+        });
+    }
+    // ─── Structured Extraction ───
+    /** Extract structured data from text using a predefined JSON schema. */
+    async extract(text, schemaId, opts) {
+        return this.request("POST", "/memory/extract", {
+            text,
+            volume_id: opts?.volumeId || this.volumeId,
+            schema_id: schemaId,
+        });
+    }
+    /** Create an extraction schema. */
+    async createExtractionSchema(schema) {
+        return this.request("POST", "/memory/extract/schemas", {
+            name: schema.name,
+            description: schema.description,
+            json_schema: schema.jsonSchema,
+            volume_id: schema.volumeId || this.volumeId,
+        });
+    }
+    /** List extraction schemas for a volume. */
+    async listExtractionSchemas(opts) {
+        const vol = opts?.volumeId || this.volumeId;
+        return this.request("GET", `/memory/extract/schemas?volume_id=${encodeURIComponent(vol)}`);
     }
     // ─── Agents (v2) ───
     /** Agent profile management. Requires user-session auth or admin-scoped API key. */

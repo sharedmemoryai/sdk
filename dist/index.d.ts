@@ -199,6 +199,28 @@ export declare class SharedMemory {
         status: string;
         memory_id: string;
     }>;
+    /** Batch delete up to 100 memories in a single request. */
+    deleteMany(memoryIds: string[], opts?: {
+        volumeId?: string;
+    }): Promise<{
+        status: string;
+        deleted: number;
+        total: number;
+    }>;
+    /** Batch update up to 100 memories in a single request. */
+    updateMany(updates: Array<{
+        memoryId: string;
+        content: string;
+        metadata?: Record<string, any>;
+    }>, opts?: {
+        volumeId?: string;
+    }): Promise<{
+        total: number;
+        results: Array<{
+            memory_id: string;
+            status: string;
+        }>;
+    }>;
     /** Write multiple memories in a single request. */
     addMany(memories: Array<{
         content: string;
@@ -251,6 +273,70 @@ export declare class SharedMemory {
     }): {
         close: () => void;
     };
+    /** Register a persistent HTTP webhook for volume events. */
+    webhookSubscribe(opts: {
+        volumeId?: string;
+        url: string;
+        events?: string[];
+        secret?: string;
+    }): Promise<{
+        webhook_id: string;
+        status: string;
+        events: string[];
+    }>;
+    /** Remove a persistent HTTP webhook subscription. */
+    webhookUnsubscribe(opts: {
+        volumeId?: string;
+        url: string;
+    }): Promise<{
+        status: string;
+    }>;
+    /** Start a new session for scoped memory tracking. */
+    startSession(sessionId: string, opts?: {
+        volumeId?: string;
+    } & EntityScope): Promise<any>;
+    /** End a session. If autoSummarize=true, compresses session memories into long-term storage. */
+    endSession(sessionId: string, opts?: {
+        volumeId?: string;
+        autoSummarize?: boolean;
+    }): Promise<any>;
+    /** Get session details by ID. */
+    getSession(sessionId: string): Promise<any>;
+    /** List sessions for a volume. */
+    listSessions(opts?: {
+        volumeId?: string;
+        status?: string;
+        limit?: number;
+    }): Promise<any[]>;
+    /** Export all memories for a volume. */
+    exportMemories(opts?: {
+        volumeId?: string;
+        format?: "json" | "jsonl";
+        includeGraph?: boolean;
+    }): Promise<any>;
+    /** Bulk import memories into a volume. */
+    importMemories(memories: Array<{
+        content: string;
+        memoryType?: string;
+        metadata?: Record<string, any>;
+    }>, opts?: {
+        volumeId?: string;
+    }): Promise<any>;
+    /** Extract structured data from text using a predefined JSON schema. */
+    extract(text: string, schemaId: string, opts?: {
+        volumeId?: string;
+    }): Promise<any>;
+    /** Create an extraction schema. */
+    createExtractionSchema(schema: {
+        name: string;
+        description?: string;
+        jsonSchema: Record<string, any>;
+        volumeId?: string;
+    }): Promise<any>;
+    /** List extraction schemas for a volume. */
+    listExtractionSchemas(opts?: {
+        volumeId?: string;
+    }): Promise<any[]>;
     /** Agent profile management. Requires user-session auth or admin-scoped API key. */
     get agents(): {
         /** Create an agent with a system prompt. Returns the agent + one-time API key. */
