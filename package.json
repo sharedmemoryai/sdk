@@ -14,10 +14,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Akash-Agarwal-X/sdk.git"
+    "url": "https://github.com/sharedmemoryai/sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/Akash-Agarwal-X/sdk/issues"
+    "url": "https://github.com/sharedmemoryai/sdk/issues"
   },
   "homepage": "https://docs.sharedmemory.ai/sdks/typescript-sdk",
   "engines": {
