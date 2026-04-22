@@ -165,7 +165,8 @@ export class SharedMemory {
     if (!config.apiKey) throw new Error("apiKey is required");
     this.apiKey = config.apiKey;
     this.baseUrl = (config.baseUrl || "https://api.sharedmemory.ai").replace(/\/$/, "");
-    this.volumeId = config.volumeId || "default";
+    if (!config.volumeId) throw new Error("volumeId is required. Get yours from the SharedMemory dashboard.");
+    this.volumeId = config.volumeId;
     this.agentName = config.agentName || "sdk-agent";
     this.timeout = config.timeout || 30000;
     this.userId = config.userId;
@@ -335,6 +336,8 @@ export class SharedMemory {
   async feedback(memoryId: string, feedback: MemoryFeedback, opts?: {
     volumeId?: string;
   }): Promise<any> {
+    // NOTE: feedback/history routes currently require user-session auth.
+    // Agent API key support pending — see /memory/feedback in routes/index.ts.
     return this.request("POST", "/memory/feedback", {
       memory_id: memoryId,
       volume_id: opts?.volumeId || this.volumeId,
@@ -345,6 +348,7 @@ export class SharedMemory {
 
   /** Get the history of changes for a memory. */
   async history(memoryId: string): Promise<{ memory: any; history: MemoryHistory[]; feedback: any[] }> {
+    // NOTE: requires user-session auth — agent API key support pending.
     return this.request("GET", `/memory/feedback/history/${memoryId}`);
   }
 
