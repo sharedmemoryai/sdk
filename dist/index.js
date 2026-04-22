@@ -20,7 +20,9 @@ class SharedMemory {
             throw new Error("apiKey is required");
         this.apiKey = config.apiKey;
         this.baseUrl = (config.baseUrl || "https://api.sharedmemory.ai").replace(/\/$/, "");
-        this.volumeId = config.volumeId || "default";
+        if (!config.volumeId)
+            throw new Error("volumeId is required. Get yours from the SharedMemory dashboard.");
+        this.volumeId = config.volumeId;
         this.agentName = config.agentName || "sdk-agent";
         this.timeout = config.timeout || 30000;
         this.userId = config.userId;
@@ -146,7 +148,7 @@ class SharedMemory {
     // ─── Feedback & History ───
     /** Submit feedback on a memory (positive, negative, or very_negative). */
     async feedback(memoryId, feedback, opts) {
-        return this.request("POST", "/memory/feedback", {
+        return this.request("POST", "/agent/memory/feedback", {
             memory_id: memoryId,
             volume_id: opts?.volumeId || this.volumeId,
             ...feedback,
@@ -155,7 +157,7 @@ class SharedMemory {
     }
     /** Get the history of changes for a memory. */
     async history(memoryId) {
-        return this.request("GET", `/memory/feedback/history/${memoryId}`);
+        return this.request("GET", `/agent/memory/feedback/history/${memoryId}`);
     }
     // ─── Knowledge Graph ───
     /** Get a specific entity from the knowledge graph. */
@@ -187,7 +189,7 @@ class SharedMemory {
     // ─── Context Assembly ───
     /** Assemble a context block for LLM prompting (Zep-style). */
     async assembleContext(opts) {
-        return this.request("POST", "/memory/context/assemble", {
+        return this.request("POST", "/agent/memory/context/assemble", {
             volume_id: opts?.volumeId || this.volumeId,
             template_id: opts?.templateId,
             ...this.entityScope(opts),
@@ -235,7 +237,7 @@ class SharedMemory {
     // ─── Sessions ───
     /** Start a new session for scoped memory tracking. */
     async startSession(sessionId, opts) {
-        return this.request("POST", "/memory/sessions/start", {
+        return this.request("POST", "/agent/memory/sessions/start", {
             session_id: sessionId,
             volume_id: opts?.volumeId || this.volumeId,
             ...this.entityScope(opts),
@@ -243,7 +245,7 @@ class SharedMemory {
     }
     /** End a session. If autoSummarize=true, compresses session memories into long-term storage. */
     async endSession(sessionId, opts) {
-        return this.request("POST", "/memory/sessions/end", {
+        return this.request("POST", "/agent/memory/sessions/end", {
             session_id: sessionId,
             volume_id: opts?.volumeId || this.volumeId,
             auto_summarize: opts?.autoSummarize ?? true,
@@ -251,7 +253,7 @@ class SharedMemory {
     }
     /** Get session details by ID. */
     async getSession(sessionId) {
-        return this.request("GET", `/memory/sessions/${sessionId}`);
+        return this.request("GET", `/agent/memory/sessions/${sessionId}`);
     }
     /** List sessions for a volume. */
     async listSessions(opts) {
@@ -261,7 +263,7 @@ class SharedMemory {
             params.set("status", opts.status);
         if (opts?.limit)
             params.set("limit", String(opts.limit));
-        return this.request("GET", `/memory/sessions?${params.toString()}`);
+        return this.request("GET", `/agent/memory/sessions?${params.toString()}`);
     }
     // ─── Export / Import ───
     /** Export all memories for a volume. */
@@ -272,11 +274,11 @@ class SharedMemory {
             params.set("format", opts.format);
         if (opts?.includeGraph !== undefined)
             params.set("include_graph", String(opts.includeGraph));
-        return this.request("GET", `/memory/export?${params.toString()}`);
+        return this.request("GET", `/agent/memory/export?${params.toString()}`);
     }
     /** Bulk import memories into a volume. */
     async importMemories(memories, opts) {
-        return this.request("POST", "/memory/import", {
+        return this.request("POST", "/agent/memory/export/import", {
             volume_id: opts?.volumeId || this.volumeId,
             memories: memories.map((m) => ({
                 content: m.content,
@@ -288,7 +290,7 @@ class SharedMemory {
     // ─── Structured Extraction ───
     /** Extract structured data from text using a predefined JSON schema. */
     async extract(text, schemaId, opts) {
-        return this.request("POST", "/memory/extract", {
+        return this.request("POST", "/agent/memory/extract", {
             text,
             volume_id: opts?.volumeId || this.volumeId,
             schema_id: schemaId,
@@ -296,7 +298,7 @@ class SharedMemory {
     }
     /** Create an extraction schema. */
     async createExtractionSchema(schema) {
-        return this.request("POST", "/memory/extract/schemas", {
+        return this.request("POST", "/agent/memory/extract/schemas", {
             name: schema.name,
             description: schema.description,
             json_schema: schema.jsonSchema,
@@ -306,7 +308,7 @@ class SharedMemory {
     /** List extraction schemas for a volume. */
     async listExtractionSchemas(opts) {
         const vol = opts?.volumeId || this.volumeId;
-        return this.request("GET", `/memory/extract/schemas?volume_id=${encodeURIComponent(vol)}`);
+        return this.request("GET", `/agent/memory/extract/schemas?volume_id=${encodeURIComponent(vol)}`);
     }
     // ─── Agents (v2) ───
     /** Agent profile management. Requires user-session auth or admin-scoped API key. */

@@ -30,17 +30,30 @@ export interface MemoryResult {
     memory_class?: string;
 }
 export interface RecallResult {
-    answer: string;
-    sources: Array<{
-        id: string;
+    query: string;
+    volume_id: string;
+    memories: Array<{
+        memory_id: string;
         content: string;
         score: number;
+        memory_type?: string;
+        memory_class?: string;
+        agent?: string;
+        created_at?: string;
     }>;
     graph_facts: Array<{
         source: string;
         type: string;
         target: string;
+        description?: string;
     }>;
+    document_sources?: Array<{
+        document_id: string;
+        filename: string;
+        content: string;
+        score: number;
+    }>;
+    total_results: number;
     reranked?: boolean;
     context?: ContextBlock;
 }
@@ -59,11 +72,20 @@ export interface Entity {
     name: string;
     type: string;
     summary: string;
-    facts: string[];
+    facts: Array<{
+        content: string;
+        category?: string;
+        importance?: number;
+    }>;
+    summaries?: Array<{
+        content: string;
+        version?: number;
+    }>;
     relationships: Array<{
-        entity: string;
-        type: string;
-        description?: string;
+        name: string;
+        type?: string;
+        rel_type: string;
+        direction?: string;
     }>;
 }
 export interface ContextBlock {
