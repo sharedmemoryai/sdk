@@ -258,7 +258,9 @@ export declare class SharedMemory {
         volumeId?: string;
     }): Promise<any>;
     /** Get the history of changes for a memory. */
-    history(memoryId: string): Promise<{
+    history(memoryId: string, opts?: {
+        volumeId?: string;
+    }): Promise<{
         memory: any;
         history: MemoryHistory[];
         feedback: any[];
@@ -323,7 +325,9 @@ export declare class SharedMemory {
         autoSummarize?: boolean;
     }): Promise<any>;
     /** Get session details by ID. */
-    getSession(sessionId: string): Promise<any>;
+    getSession(sessionId: string, opts?: {
+        volumeId?: string;
+    }): Promise<any>;
     /** List sessions for a volume. */
     listSessions(opts?: {
         volumeId?: string;
@@ -350,6 +354,7 @@ export declare class SharedMemory {
     }): Promise<any>;
     /** Create an extraction schema. */
     createExtractionSchema(schema: {
+        schemaId?: string;
         name: string;
         description?: string;
         jsonSchema: Record<string, any>;

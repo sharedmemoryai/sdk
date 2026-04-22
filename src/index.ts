@@ -349,8 +349,9 @@ export class SharedMemory {
   }
 
   /** Get the history of changes for a memory. */
-  async history(memoryId: string): Promise<{ memory: any; history: MemoryHistory[]; feedback: any[] }> {
-    return this.request("GET", `/agent/memory/feedback/history/${memoryId}`);
+  async history(memoryId: string, opts?: { volumeId?: string }): Promise<{ memory: any; history: MemoryHistory[]; feedback: any[] }> {
+    const vol = opts?.volumeId || this.volumeId;
+    return this.request("GET", `/agent/memory/feedback/history/${memoryId}?volume_id=${encodeURIComponent(vol)}`);
   }
 
   // ─── Knowledge Graph ───
@@ -467,10 +468,11 @@ export class SharedMemory {
   async startSession(sessionId: string, opts?: {
     volumeId?: string;
   } & EntityScope): Promise<any> {
+    const scope = this.entityScope(opts);
     return this.request("POST", "/agent/memory/sessions/start", {
+      ...scope,
       session_id: sessionId,
       volume_id: opts?.volumeId || this.volumeId,
-      ...this.entityScope(opts),
     });
   }
 
@@ -487,8 +489,9 @@ export class SharedMemory {
   }
 
   /** Get session details by ID. */
-  async getSession(sessionId: string): Promise<any> {
-    return this.request("GET", `/agent/memory/sessions/${sessionId}`);
+  async getSession(sessionId: string, opts?: { volumeId?: string }): Promise<any> {
+    const vol = opts?.volumeId || this.volumeId;
+    return this.request("GET", `/agent/memory/sessions/${sessionId}?volume_id=${encodeURIComponent(vol)}`);
   }
 
   /** List sessions for a volume. */
@@ -550,12 +553,14 @@ export class SharedMemory {
 
   /** Create an extraction schema. */
   async createExtractionSchema(schema: {
+    schemaId?: string;
     name: string;
     description?: string;
     jsonSchema: Record<string, any>;
     volumeId?: string;
   }): Promise<any> {
     return this.request("POST", "/agent/memory/extract/schemas", {
+      schema_id: schema.schemaId || crypto.randomUUID(),
       name: schema.name,
       description: schema.description,
       json_schema: schema.jsonSchema,
