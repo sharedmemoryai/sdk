@@ -439,6 +439,23 @@ export class SharedMemory {
     return this.delete(memoryId, opts);
   }
 
+  // ─── Profile ───
+
+  /** Get a comprehensive profile for a volume (or user within a volume).
+   *  Returns categorized facts, preferences, expertise, projects, relationships,
+   *  recent activity, instructions, topics, stats, and a pre-formatted context_block. */
+  async getProfile(opts?: {
+    volumeId?: string;
+    userId?: string;
+    refresh?: boolean;
+  }): Promise<any> {
+    return this.request("POST", "/agent/memory/profile", {
+      volume_id: opts?.volumeId || this.volumeId,
+      user_id: opts?.userId,
+      refresh: opts?.refresh,
+    });
+  }
+
   // ─── Real-time ───
 
   /** Subscribe to real-time updates on a volume. */
