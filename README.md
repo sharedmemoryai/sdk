@@ -43,7 +43,7 @@ const results = await memory.searchEntities('React');
 const graph = await memory.getGraph();
 
 // Context assembly
-const context = await memory.assembleContext('Tell me about Acme Corp');
+const context = await memory.assembleContext({ volumeId: 'your-volume-id' });
 
 // Agent management
 const agent = await memory.agents.create({
@@ -51,7 +51,7 @@ const agent = await memory.agents.create({
   projectId: 'project-id',
   name: 'my-agent',
 });
-const agents = await memory.agents.list('org-id');
+const agents = await memory.agents.list({ orgId: 'org-id' });
 
 // Real-time
 const sub = memory.subscribe({
@@ -71,6 +71,10 @@ sub.close();
 | `volumeId` | `string` | `default` | Default volume for all operations |
 | `agentName` | `string` | `sdk-agent` | Agent name for attribution |
 | `timeout` | `number` | `30000` | Request timeout (ms) |
+| `userId` | `string` | — | Scope memories to a specific user |
+| `agentId` | `string` | — | Scope memories to a specific agent |
+| `appId` | `string` | — | App identifier for scoping |
+| `sessionId` | `string` | — | Default session ID |
 
 ## Methods
 
@@ -84,8 +88,10 @@ sub.close();
 | `update(memoryId, content)` | Update a memory |
 | `delete(memoryId)` | Delete a memory |
 | `addMany(items, opts?)` | Store multiple memories in batch |
-| `feedback(memoryId, rating)` | Submit feedback on a memory |
-| `history(opts?)` | Get memory history |
+| `deleteMany(memoryIds, opts?)` | Delete multiple memories in batch |
+| `updateMany(updates, opts?)` | Update multiple memories in batch |
+| `feedback(memoryId, feedback)` | Submit feedback (`{ feedback: 'POSITIVE' \| 'NEGATIVE', feedback_reason?: string }`) |
+| `history(memoryId)` | Get memory audit trail |
 
 ### Graph
 
@@ -99,7 +105,7 @@ sub.close();
 
 | Method | Description |
 |--------|-------------|
-| `assembleContext(query, opts?)` | Assemble relevant context for a query |
+| `assembleContext(opts?)` | Assemble relevant context for LLM prompting |
 
 ### Volumes
 
@@ -112,7 +118,7 @@ sub.close();
 | Method | Description |
 |--------|-------------|
 | `agents.create(opts)` | Create a new agent and get an API key |
-| `agents.list(orgId)` | List agents in an organization |
+| `agents.list(opts)` | List agents in an organization |
 | `agents.get(agentId)` | Get agent details |
 | `agents.update(agentId, opts)` | Update agent name, description, or prompt |
 | `agents.delete(agentId)` | Deactivate an agent and revoke its key |
@@ -132,6 +138,37 @@ sub.close();
 | Method | Description |
 |--------|-------------|
 | `subscribe(opts)` | Real-time updates via WebSocket |
+
+### Webhooks
+
+| Method | Description |
+|--------|-------------|
+| `webhookSubscribe(opts)` | Register a webhook for memory events |
+| `webhookUnsubscribe(opts)` | Remove a webhook subscription |
+
+### Sessions
+
+| Method | Description |
+|--------|-------------|
+| `startSession(sessionId, opts?)` | Start a conversation session |
+| `endSession(sessionId, opts?)` | End a session (auto-summarize) |
+| `getSession(sessionId)` | Get session details |
+| `listSessions(opts?)` | List sessions |
+
+### Export / Import
+
+| Method | Description |
+|--------|-------------|
+| `exportMemories(opts?)` | Export all memories |
+| `importMemories(memories, opts?)` | Bulk import memories |
+
+### Extraction
+
+| Method | Description |
+|--------|-------------|
+| `extract(text, schemaId, opts?)` | Extract structured data from text |
+| `createExtractionSchema(schema)` | Create a new extraction schema |
+| `listExtractionSchemas(opts?)` | List extraction schemas |
 
 ## Documentation
 
