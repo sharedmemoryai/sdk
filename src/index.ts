@@ -340,9 +340,7 @@ export class SharedMemory {
   async feedback(memoryId: string, feedback: MemoryFeedback, opts?: {
     volumeId?: string;
   }): Promise<any> {
-    // NOTE: feedback/history routes currently require user-session auth.
-    // Agent API key support pending — see /memory/feedback in routes/index.ts.
-    return this.request("POST", "/memory/feedback", {
+    return this.request("POST", "/agent/memory/feedback", {
       memory_id: memoryId,
       volume_id: opts?.volumeId || this.volumeId,
       ...feedback,
@@ -352,8 +350,7 @@ export class SharedMemory {
 
   /** Get the history of changes for a memory. */
   async history(memoryId: string): Promise<{ memory: any; history: MemoryHistory[]; feedback: any[] }> {
-    // NOTE: requires user-session auth — agent API key support pending.
-    return this.request("GET", `/memory/feedback/history/${memoryId}`);
+    return this.request("GET", `/agent/memory/feedback/history/${memoryId}`);
   }
 
   // ─── Knowledge Graph ───
@@ -470,7 +467,7 @@ export class SharedMemory {
   async startSession(sessionId: string, opts?: {
     volumeId?: string;
   } & EntityScope): Promise<any> {
-    return this.request("POST", "/memory/sessions/start", {
+    return this.request("POST", "/agent/memory/sessions/start", {
       session_id: sessionId,
       volume_id: opts?.volumeId || this.volumeId,
       ...this.entityScope(opts),
@@ -482,7 +479,7 @@ export class SharedMemory {
     volumeId?: string;
     autoSummarize?: boolean;
   }): Promise<any> {
-    return this.request("POST", "/memory/sessions/end", {
+    return this.request("POST", "/agent/memory/sessions/end", {
       session_id: sessionId,
       volume_id: opts?.volumeId || this.volumeId,
       auto_summarize: opts?.autoSummarize ?? true,
@@ -491,7 +488,7 @@ export class SharedMemory {
 
   /** Get session details by ID. */
   async getSession(sessionId: string): Promise<any> {
-    return this.request("GET", `/memory/sessions/${sessionId}`);
+    return this.request("GET", `/agent/memory/sessions/${sessionId}`);
   }
 
   /** List sessions for a volume. */
@@ -504,7 +501,7 @@ export class SharedMemory {
     const params = new URLSearchParams({ volume_id: vol });
     if (opts?.status) params.set("status", opts.status);
     if (opts?.limit) params.set("limit", String(opts.limit));
-    return this.request("GET", `/memory/sessions?${params.toString()}`);
+    return this.request("GET", `/agent/memory/sessions?${params.toString()}`);
   }
 
   // ─── Export / Import ───
@@ -544,7 +541,7 @@ export class SharedMemory {
   async extract(text: string, schemaId: string, opts?: {
     volumeId?: string;
   }): Promise<any> {
-    return this.request("POST", "/memory/extract", {
+    return this.request("POST", "/agent/memory/extract", {
       text,
       volume_id: opts?.volumeId || this.volumeId,
       schema_id: schemaId,
@@ -558,7 +555,7 @@ export class SharedMemory {
     jsonSchema: Record<string, any>;
     volumeId?: string;
   }): Promise<any> {
-    return this.request("POST", "/memory/extract/schemas", {
+    return this.request("POST", "/agent/memory/extract/schemas", {
       name: schema.name,
       description: schema.description,
       json_schema: schema.jsonSchema,
@@ -569,7 +566,7 @@ export class SharedMemory {
   /** List extraction schemas for a volume. */
   async listExtractionSchemas(opts?: { volumeId?: string }): Promise<any[]> {
     const vol = opts?.volumeId || this.volumeId;
-    return this.request("GET", `/memory/extract/schemas?volume_id=${encodeURIComponent(vol)}`);
+    return this.request("GET", `/agent/memory/extract/schemas?volume_id=${encodeURIComponent(vol)}`);
   }
 
   // ─── Agents (v2) ───
