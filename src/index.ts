@@ -407,6 +407,38 @@ export class SharedMemory {
     });
   }
 
+  // ─── Instructions ───
+
+  /** Create an instruction that all agents on this volume will receive in their context. */
+  async setInstruction(content: string, opts?: {
+    volumeId?: string;
+    metadata?: Record<string, any>;
+  } & EntityScope): Promise<MemoryResult> {
+    return this.request("POST", "/agent/memory/write", {
+      content,
+      volume_id: opts?.volumeId || this.volumeId,
+      agent: this.agentName,
+      memory_type: "instruction",
+      source: opts ? undefined : "sdk",
+      metadata: opts?.metadata,
+      ...this.entityScope(opts),
+    });
+  }
+
+  /** List all instructions for a volume. */
+  async listInstructions(opts?: {
+    volumeId?: string;
+  }): Promise<Array<{ memory_id: string; content: string; created_at: string; metadata?: Record<string, any> }>> {
+    const vol = opts?.volumeId || this.volumeId;
+    const params = new URLSearchParams({ volume_id: vol, memory_type: "instruction" });
+    return this.request("GET", `/agent/memory/list?${params.toString()}`);
+  }
+
+  /** Delete an instruction by memory ID. */
+  async deleteInstruction(memoryId: string, opts?: { volumeId?: string }): Promise<{ status: string; memory_id: string }> {
+    return this.delete(memoryId, opts);
+  }
+
   // ─── Real-time ───
 
   /** Subscribe to real-time updates on a volume. */
