@@ -399,7 +399,7 @@ export class SharedMemory {
     volumeId?: string;
     templateId?: string;
   } & EntityScope): Promise<ContextBlock> {
-    return this.request("POST", "/memory/context/assemble", {
+    return this.request("POST", "/agent/memory/context/assemble", {
       volume_id: opts?.volumeId || this.volumeId,
       template_id: opts?.templateId,
       ...this.entityScope(opts),
@@ -516,7 +516,7 @@ export class SharedMemory {
     const params = new URLSearchParams({ volume_id: vol });
     if (opts?.format) params.set("format", opts.format);
     if (opts?.includeGraph !== undefined) params.set("include_graph", String(opts.includeGraph));
-    return this.request("GET", `/memory/export?${params.toString()}`);
+    return this.request("GET", `/agent/memory/export?${params.toString()}`);
   }
 
   /** Bulk import memories into a volume. */
@@ -525,7 +525,7 @@ export class SharedMemory {
     memoryType?: string;
     metadata?: Record<string, any>;
   }>, opts?: { volumeId?: string }): Promise<any> {
-    return this.request("POST", "/memory/export/import", {
+    return this.request("POST", "/agent/memory/export/import", {
       volume_id: opts?.volumeId || this.volumeId,
       memories: memories.map((m) => ({
         content: m.content,
