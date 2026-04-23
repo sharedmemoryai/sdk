@@ -221,6 +221,7 @@ export class SharedMemory {
     memoryType?: string;
     source?: string;
     volumeId?: string;
+    eventDate?: string;
     metadata?: Record<string, any>;
   } & EntityScope): Promise<MemoryResult> {
     return this.request("POST", "/agent/memory/write", {
@@ -229,6 +230,7 @@ export class SharedMemory {
       agent: this.agentName,
       memory_type: opts?.memoryType || "factual",
       source: opts?.source || "sdk",
+      event_date: opts?.eventDate,
       metadata: opts?.metadata,
       ...this.entityScope(opts),
     });
@@ -246,6 +248,8 @@ export class SharedMemory {
     filters?: MetadataFilter;
     rerank?: boolean;
     rerankMethod?: "llm" | "heuristic";
+    dateFrom?: string;
+    dateTo?: string;
     includeContext?: boolean;
     templateId?: string;
   } & EntityScope): Promise<RecallResult> {
@@ -256,6 +260,8 @@ export class SharedMemory {
       filters: opts?.filters,
       rerank: opts?.rerank,
       rerank_method: opts?.rerankMethod,
+      date_from: opts?.dateFrom,
+      date_to: opts?.dateTo,
       include_context: opts?.includeContext,
       template_id: opts?.templateId,
       ...this.entityScope(opts),
