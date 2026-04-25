@@ -1,6 +1,6 @@
 {
   "name": "@sharedmemory/sdk",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "SDK for SharedMemory — persistent memory layer for AI agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -70,6 +70,7 @@ class SharedMemory {
             agent: this.agentName,
             memory_type: opts?.memoryType || "factual",
             source: opts?.source || "sdk",
+            event_date: opts?.eventDate,
             metadata: opts?.metadata,
             ...this.entityScope(opts),
         });
@@ -87,6 +88,8 @@ class SharedMemory {
             filters: opts?.filters,
             rerank: opts?.rerank,
             rerank_method: opts?.rerankMethod,
+            date_from: opts?.dateFrom,
+            date_to: opts?.dateTo,
             include_context: opts?.includeContext,
             template_id: opts?.templateId,
             ...this.entityScope(opts),
@@ -95,6 +98,19 @@ class SharedMemory {
     /** Alias for search() */
     async recall(query, opts) {
         return this.search(query, opts);
+    }
+    /** Ask a question and get an LLM-generated answer grounded in your memories.
+     *  Uses the full RAG pipeline: retrieval → reranking → LLM generation → citations. */
+    async chat(query, opts) {
+        return this.request("POST", "/agent/memory/chat", {
+            query,
+            volume_id: opts?.volumeId || this.volumeId,
+            limit: opts?.limit || 10,
+            date_from: opts?.dateFrom,
+            date_to: opts?.dateTo,
+            rerank: opts?.rerank,
+            ...this.entityScope(opts),
+        });
     }
     /** Get a single memory by ID. */
     async get(memoryId, opts) {
@@ -194,6 +210,40 @@ class SharedMemory {
             volume_id: opts?.volumeId || this.volumeId,
             template_id: opts?.templateId,
             ...this.entityScope(opts),
+        });
+    }
+    // ─── Instructions ───
+    /** Create an instruction that all agents on this volume will receive in their context. */
+    async setInstruction(content, opts) {
+        return this.request("POST", "/agent/memory/write", {
+            content,
+            volume_id: opts?.volumeId || this.volumeId,
+            agent: this.agentName,
+            memory_type: "instruction",
+            source: opts ? undefined : "sdk",
+            metadata: opts?.metadata,
+            ...this.entityScope(opts),
+        });
+    }
+    /** List all instructions for a volume. */
+    async listInstructions(opts) {
+        const vol = opts?.volumeId || this.volumeId;
+        const params = new URLSearchParams({ volume_id: vol, memory_type: "instruction" });
+        return this.request("GET", `/agent/memory/list?${params.toString()}`);
+    }
+    /** Delete an instruction by memory ID. */
+    async deleteInstruction(memoryId, opts) {
+        return this.delete(memoryId, opts);
+    }
+    // ─── Profile ───
+    /** Get a comprehensive profile for a volume (or user within a volume).
+     *  Returns categorized facts, preferences, expertise, projects, relationships,
+     *  recent activity, instructions, topics, stats, and a pre-formatted context_block. */
+    async getProfile(opts) {
+        return this.request("POST", "/agent/memory/profile", {
+            volume_id: opts?.volumeId || this.volumeId,
+            user_id: opts?.userId,
+            refresh: opts?.refresh,
         });
     }
     // ─── Real-time ───

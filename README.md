@@ -32,6 +32,10 @@ await memory.addMany([
 // Search
 const recall = await memory.search('Who is John?');
 
+// Chat (RAG + LLM answer)
+const answer = await memory.chat('What does John do at Acme?');
+console.log(answer.answer, answer.sources, answer.citations);
+
 // Get / Update / Delete
 const mem = await memory.get('memory-id');
 await memory.update('memory-id', 'Updated content');
@@ -84,6 +88,7 @@ sub.close();
 |--------|-------------|
 | `add(content, opts?)` | Store a memory (alias: `remember`) |
 | `search(query, opts?)` | Search memories and graph facts (alias: `recall`) |
+| `chat(query, opts?)` | Ask a question — LLM answers using your memories |
 | `get(memoryId)` | Get a memory by ID |
 | `update(memoryId, content)` | Update a memory |
 | `delete(memoryId)` | Delete a memory |

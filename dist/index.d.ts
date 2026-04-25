@@ -121,6 +121,25 @@ export interface MetadataFilter {
     op?: string;
     value?: any;
 }
+export interface ChatResult {
+    answer: string;
+    sources: Array<{
+        memory_id: string;
+        content: string;
+        score: number;
+        memory_type?: string;
+        category?: string;
+    }>;
+    citations: Array<{
+        source_index: number;
+        text: string;
+    }>;
+    model?: string;
+    usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+    };
+}
 export interface ActivityEvent {
     event_id: string;
     volume_id: string;
@@ -186,6 +205,7 @@ export declare class SharedMemory {
         memoryType?: string;
         source?: string;
         volumeId?: string;
+        eventDate?: string;
         metadata?: Record<string, any>;
     } & EntityScope): Promise<MemoryResult>;
     /** Alias for add() */
@@ -197,11 +217,22 @@ export declare class SharedMemory {
         filters?: MetadataFilter;
         rerank?: boolean;
         rerankMethod?: "llm" | "heuristic";
+        dateFrom?: string;
+        dateTo?: string;
         includeContext?: boolean;
         templateId?: string;
     } & EntityScope): Promise<RecallResult>;
     /** Alias for search() */
     recall(query: string, opts?: Parameters<SharedMemory["search"]>[1]): Promise<RecallResult>;
+    /** Ask a question and get an LLM-generated answer grounded in your memories.
+     *  Uses the full RAG pipeline: retrieval → reranking → LLM generation → citations. */
+    chat(query: string, opts?: {
+        volumeId?: string;
+        limit?: number;
+        dateFrom?: string;
+        dateTo?: string;
+        rerank?: boolean;
+    } & EntityScope): Promise<ChatResult>;
     /** Get a single memory by ID. */
     get(memoryId: string, opts?: {
         volumeId?: string;
@@ -288,6 +319,35 @@ export declare class SharedMemory {
         volumeId?: string;
         templateId?: string;
     } & EntityScope): Promise<ContextBlock>;
+    /** Create an instruction that all agents on this volume will receive in their context. */
+    setInstruction(content: string, opts?: {
+        volumeId?: string;
+        metadata?: Record<string, any>;
+    } & EntityScope): Promise<MemoryResult>;
+    /** List all instructions for a volume. */
+    listInstructions(opts?: {
+        volumeId?: string;
+    }): Promise<Array<{
+        memory_id: string;
+        content: string;
+        created_at: string;
+        metadata?: Record<string, any>;
+    }>>;
+    /** Delete an instruction by memory ID. */
+    deleteInstruction(memoryId: string, opts?: {
+        volumeId?: string;
+    }): Promise<{
+        status: string;
+        memory_id: string;
+    }>;
+    /** Get a comprehensive profile for a volume (or user within a volume).
+     *  Returns categorized facts, preferences, expertise, projects, relationships,
+     *  recent activity, instructions, topics, stats, and a pre-formatted context_block. */
+    getProfile(opts?: {
+        volumeId?: string;
+        userId?: string;
+        refresh?: boolean;
+    }): Promise<any>;
     /** Subscribe to real-time updates on a volume. */
     subscribe(opts: {
         volumeId?: string;

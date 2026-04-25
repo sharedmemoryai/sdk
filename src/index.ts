@@ -102,6 +102,14 @@ export interface MetadataFilter {
   value?: any;
 }
 
+export interface ChatResult {
+  answer: string;
+  sources: Array<{ memory_id: string; content: string; score: number; memory_type?: string; category?: string }>;
+  citations: Array<{ source_index: number; text: string }>;
+  model?: string;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+}
+
 export interface ActivityEvent {
   event_id: string;
   volume_id: string;
@@ -271,6 +279,26 @@ export class SharedMemory {
   /** Alias for search() */
   async recall(query: string, opts?: Parameters<SharedMemory["search"]>[1]): Promise<RecallResult> {
     return this.search(query, opts);
+  }
+
+  /** Ask a question and get an LLM-generated answer grounded in your memories.
+   *  Uses the full RAG pipeline: retrieval → reranking → LLM generation → citations. */
+  async chat(query: string, opts?: {
+    volumeId?: string;
+    limit?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    rerank?: boolean;
+  } & EntityScope): Promise<ChatResult> {
+    return this.request("POST", "/agent/memory/chat", {
+      query,
+      volume_id: opts?.volumeId || this.volumeId,
+      limit: opts?.limit || 10,
+      date_from: opts?.dateFrom,
+      date_to: opts?.dateTo,
+      rerank: opts?.rerank,
+      ...this.entityScope(opts),
+    });
   }
 
   /** Get a single memory by ID. */
