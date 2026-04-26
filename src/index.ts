@@ -4,8 +4,8 @@
  * Usage:
  *   import { SharedMemory } from '@sharedmemory/sdk'
  *   const memory = new SharedMemory({ apiKey: 'sm_proj_rw_...' })
- *   await memory.add("The user prefers dark mode")
- *   const results = await memory.search("user preferences")
+ *   await memory.remember("The user prefers dark mode")
+ *   const results = await memory.query("user preferences")
  *
  * Agent profiles:
  *   const agents = await memory.agents.list({ orgId: '...' })
@@ -222,10 +222,10 @@ export class SharedMemory {
     };
   }
 
-  // ─── Core Memory Operations (Mem0-compatible) ───
+  // ─── Core Memory Operations ───
 
-  /** Add a memory. Alias: remember() */
-  async add(content: string, opts?: {
+  /** Store a memory. The pipeline will classify, guard-check, extract entities, and build the graph automatically. */
+  async remember(content: string, opts?: {
     memoryType?: string;
     source?: string;
     volumeId?: string;
@@ -244,13 +244,13 @@ export class SharedMemory {
     });
   }
 
-  /** Alias for add() */
-  async remember(content: string, opts?: Parameters<SharedMemory["add"]>[1]): Promise<MemoryResult> {
-    return this.add(content, opts);
+  /** @deprecated Use remember() instead. */
+  async add(content: string, opts?: Parameters<SharedMemory["remember"]>[1]): Promise<MemoryResult> {
+    return this.remember(content, opts);
   }
 
-  /** Search memories by semantic similarity. */
-  async search(query: string, opts?: {
+  /** Query memories by semantic similarity. Returns matching memories plus knowledge graph facts. */
+  async query(queryText: string, opts?: {
     volumeId?: string;
     limit?: number;
     filters?: MetadataFilter;
@@ -262,7 +262,7 @@ export class SharedMemory {
     templateId?: string;
   } & EntityScope): Promise<RecallResult> {
     return this.request("POST", "/agent/memory/query", {
-      query,
+      query: queryText,
       volume_id: opts?.volumeId || this.volumeId,
       limit: opts?.limit || 10,
       filters: opts?.filters,
@@ -276,9 +276,14 @@ export class SharedMemory {
     });
   }
 
-  /** Alias for search() */
-  async recall(query: string, opts?: Parameters<SharedMemory["search"]>[1]): Promise<RecallResult> {
-    return this.search(query, opts);
+  /** @deprecated Use query() instead. */
+  async search(queryText: string, opts?: Parameters<SharedMemory["query"]>[1]): Promise<RecallResult> {
+    return this.query(queryText, opts);
+  }
+
+  /** @deprecated Use query() instead. */
+  async recall(queryText: string, opts?: Parameters<SharedMemory["query"]>[1]): Promise<RecallResult> {
+    return this.query(queryText, opts);
   }
 
   /** Ask a question and get an LLM-generated answer grounded in your memories.
@@ -351,7 +356,7 @@ export class SharedMemory {
   }
 
   /** Write multiple memories in a single request. */
-  async addMany(memories: Array<{
+  async rememberMany(memories: Array<{
     content: string;
     volumeId?: string;
     memoryType?: string;
@@ -366,6 +371,11 @@ export class SharedMemory {
         ...this.entityScope(m),
       })),
     });
+  }
+
+  /** @deprecated Use rememberMany() instead. */
+  async addMany(memories: Parameters<SharedMemory["rememberMany"]>[0]): Promise<{ total: number; results: MemoryResult[] }> {
+    return this.rememberMany(memories);
   }
 
   // ─── Feedback & History ───
@@ -429,8 +439,8 @@ export class SharedMemory {
 
   // ─── Context Assembly ───
 
-  /** Assemble a context block for LLM prompting (Zep-style). */
-  async assembleContext(opts?: {
+  /** Get a context block for LLM prompting. */
+  async getContext(opts?: {
     volumeId?: string;
     templateId?: string;
   } & EntityScope): Promise<ContextBlock> {
@@ -439,6 +449,11 @@ export class SharedMemory {
       template_id: opts?.templateId,
       ...this.entityScope(opts),
     });
+  }
+
+  /** @deprecated Use getContext() instead. */
+  async assembleContext(opts?: Parameters<SharedMemory["getContext"]>[0]): Promise<ContextBlock> {
+    return this.getContext(opts);
   }
 
   // ─── Instructions ───

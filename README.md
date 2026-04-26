@@ -21,18 +21,18 @@ const memory = new SharedMemory({
 });
 
 // Write
-const result = await memory.add('John is the CTO of Acme Corp');
+const result = await memory.remember('John is the CTO of Acme Corp');
 
 // Batch write
-await memory.addMany([
+await memory.rememberMany([
   { content: 'Jane is VP of Engineering' },
   { content: 'Acme Corp uses React and Node.js' },
 ]);
 
-// Search
-const recall = await memory.search('Who is John?');
+// Query (raw search)
+const recall = await memory.query('Who is John?');
 
-// Chat (RAG + LLM answer)
+// Chat (RAG + LLM answer) — the default way to interact
 const answer = await memory.chat('What does John do at Acme?');
 console.log(answer.answer, answer.sources, answer.citations);
 
@@ -47,7 +47,7 @@ const results = await memory.searchEntities('React');
 const graph = await memory.getGraph();
 
 // Context assembly
-const context = await memory.assembleContext({ volumeId: 'your-volume-id' });
+const context = await memory.getContext({ volumeId: 'your-volume-id' });
 
 // Agent management
 const agent = await memory.agents.create({
@@ -86,13 +86,13 @@ sub.close();
 
 | Method | Description |
 |--------|-------------|
-| `add(content, opts?)` | Store a memory (alias: `remember`) |
-| `search(query, opts?)` | Search memories and graph facts (alias: `recall`) |
+| `remember(content, opts?)` | Store a memory |
+| `query(query, opts?)` | Query memories and graph facts (raw search) |
 | `chat(query, opts?)` | Ask a question — LLM answers using your memories |
 | `get(memoryId)` | Get a memory by ID |
 | `update(memoryId, content)` | Update a memory |
 | `delete(memoryId)` | Delete a memory |
-| `addMany(items, opts?)` | Store multiple memories in batch |
+| `rememberMany(items, opts?)` | Store multiple memories in batch |
 | `deleteMany(memoryIds, opts?)` | Delete multiple memories in batch |
 | `updateMany(updates, opts?)` | Update multiple memories in batch |
 | `feedback(memoryId, feedback)` | Submit feedback (`{ feedback: 'POSITIVE' \| 'NEGATIVE', feedback_reason?: string }`) |
@@ -110,7 +110,7 @@ sub.close();
 
 | Method | Description |
 |--------|-------------|
-| `assembleContext(opts?)` | Assemble relevant context for LLM prompting |
+| `getContext(opts?)` | Get relevant context for LLM prompting |
 
 ### Volumes
 
