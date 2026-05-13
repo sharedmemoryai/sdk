@@ -22,6 +22,16 @@ export interface SharedMemoryConfig {
   agentId?: string;
   appId?: string;
   sessionId?: string;
+  /**
+   * Override the client identity reported to the SharedMemory API. Used by
+   * embedders (Cursor extension, browser extension, custom wrappers) so the
+   * activity feed shows their tool name instead of the default "sdk-js".
+   * Must be one of the canonical names: cursor | claude-desktop | claude-code |
+   * windsurf | cli | mcp | sdk-js | sdk-python | web | browser-ext.
+   */
+  clientName?: string;
+  clientVersion?: string;
+  clientHost?: string;
 }
 
 export interface MemoryResult {
@@ -162,6 +172,8 @@ export interface OrgMember {
   joined_at: string;
 }
 
+const SDK_VERSION = "2.4.0";
+
 export class SharedMemory {
   private apiKey: string;
   private baseUrl: string;
@@ -172,6 +184,9 @@ export class SharedMemory {
   private agentId?: string;
   private appId?: string;
   private sessionId?: string;
+  private clientName: string;
+  private clientVersion: string;
+  private clientHost: string | null;
 
   constructor(config: SharedMemoryConfig) {
     if (!config.apiKey) throw new Error("apiKey is required");
@@ -185,6 +200,9 @@ export class SharedMemory {
     this.agentId = config.agentId;
     this.appId = config.appId;
     this.sessionId = config.sessionId;
+    this.clientName = config.clientName || "sdk-js";
+    this.clientVersion = config.clientVersion || SDK_VERSION;
+    this.clientHost = config.clientHost || null;
   }
 
   private async request(method: string, path: string, body?: any): Promise<any> {
@@ -192,12 +210,18 @@ export class SharedMemory {
     const timer = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      const headers: Record<string, string> = {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+        "User-Agent": `sharedmemory-${this.clientName}/${this.clientVersion}`,
+        "X-SM-Client": this.clientName,
+        "X-SM-Client-Version": this.clientVersion,
+      };
+      if (this.clientHost) headers["X-SM-Client-Host"] = this.clientHost;
+
       const res = await fetch(`${this.baseUrl}${path}`, {
         method,
-        headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
